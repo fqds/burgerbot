@@ -6,15 +6,17 @@ from bot import RunBot
 from settings import TG_BOT_TOKEN
 
 logging.basicConfig( 
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  
     level=logging.INFO
 )
 
-if __name__ == '__main__':
-    waiting_answer = {}
+def main():
     bot_application = ApplicationBuilder().token(TG_BOT_TOKEN).build()
 
-    parsingThread = threading.Thread(target=RunParsing, args=(bot_application, waiting_answer), name="parsing thread")
+    parsingThread = threading.Thread(target=RunParsing, args=(bot_application,), name="parsing thread")
     parsingThread.start()
-    
-    RunBot(bot_application, waiting_answer)
+    RunBot(bot_application)
+
+
+if __name__ == '__main__':
+    main()

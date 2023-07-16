@@ -1,17 +1,54 @@
-from telegram import Update
-from telegram.ext import ContextTypes, CommandHandler
+from telegram import InlineKeyboardMarkup, Update, InlineKeyboardButton
+from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, CallbackContext
+from db import DB
 
 async def _startHandler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = f"Здравствуйте, {update.message.from_user.first_name}, ваш id:\n{update.message.from_user.id}"
     await context.bot.send_message(chat_id=update.effective_chat.id, text = text)
 
-async def SendMessage(chat_id, text):
-    pass
+async def SendMessage(bot_application, chat_id, text):
+    await bot_application.bot.send_message(chat_id=chat_id, text=text)
 
-async def SendNotification(chat_id, text):
-    await SendMessage(chat_id, text)
+async def SendNotification(bot_application, chat_id, text):
+    keyboard = [
+        [
+            InlineKeyboardButton("выполнено", callback_data="task_complited"),
+            InlineKeyboardButton("не сделано", callback_data="task_not_complited"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    message = await bot_application.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
+    return message.message_id
 
-def RunBot(bot_application, waiting_answer):
+async def _success_callback(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+    message = DB.GetMessageByMessageID(query.message.chat.id, query.message.message_id)
+    await query.edit_message_text(
+        text=message["message_text"] + "\n\nCOMPLITED"
+    )
+
+    manager_text = f"Ha задачу:\n{message['message_text']}, Был получен ответ:\n'Выполнено'"
+    await SendMessage(context, message["manager_id"], manager_text)
+    return
+
+async def _fail_callback(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+    message = DB.GetMessageByMessageID(query.message.chat.id, query.message.message_id)
+    await query.edit_message_text(
+        text=message["message_text"] + "\n\nNOT DONE"
+    )
+
+    manager_text = f"Ha задачу:\n{message['message_text']}, Был получен ответ:\n'He сделано'"
+    await SendMessage(context, message["manager_id"], manager_text)
+    return
+
+def RunBot(bot_application):
     start_handler = CommandHandler('start', _startHandler)
+    success_callback = CallbackQueryHandler(_success_callback, "^task_complited$")
+    fail_callback = CallbackQueryHandler(_fail_callback, "^task_not_complited$")
+    bot_application.add_handler(success_callback)
     bot_application.add_handler(start_handler)
+    bot_application.add_handler(fail_callback)
     bot_application.run_polling()
