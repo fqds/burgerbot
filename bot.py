@@ -6,6 +6,9 @@ async def _startHandler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = f"Здравствуйте, {update.message.from_user.first_name}, ваш id:\n{update.message.from_user.id}"
     await context.bot.send_message(chat_id=update.effective_chat.id, text = text)
 
+async def EditMessage(bot_application, chat_id, text, message_id):
+    await bot_application.bot.edit_message_text(chat_id=chat_id, text=text, message_id=message_id)
+
 async def SendMessage(bot_application, chat_id, text):
     await bot_application.bot.send_message(chat_id=chat_id, text=text)
 
@@ -23,13 +26,16 @@ async def SendNotification(bot_application, chat_id, text):
 async def _success_callback(update: Update, context: CallbackContext):
     query = update.callback_query
     await query.answer()
-    message = DB.GetMessageByMessageID(query.message.chat.id, query.message.message_id)
+    chat_id = query.message.chat.id
+    message_id = query.message.message_id
+    message = DB.GetMessageByMessageID(chat_id, message_id)
     await query.edit_message_text(
         text=message["message_text"] + "\n\nCOMPLITED"
     )
 
-    manager_text = f"Ha задачу:\n{message['message_text']}, Был получен ответ:\n'Выполнено'"
+    manager_text = f"Ha задачу:\n{message['message_text']}, \nБыл получен ответ: 'Выполнено'"
     await SendMessage(context, message["manager_id"], manager_text)
+    DB.SetInAnsweredTrue(chat_id, message_id)
     return
 
 async def _fail_callback(update: Update, context: CallbackContext):
@@ -40,7 +46,7 @@ async def _fail_callback(update: Update, context: CallbackContext):
         text=message["message_text"] + "\n\nNOT DONE"
     )
 
-    manager_text = f"Ha задачу:\n{message['message_text']}, Был получен ответ:\n'He сделано'"
+    manager_text = f"Ha задачу:\n{message['message_text']}, \nБыл получен ответ: 'He сделано'"
     await SendMessage(context, message["manager_id"], manager_text)
     return
 
