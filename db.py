@@ -32,4 +32,5 @@ class Messages:
                 i["is_answered"] = True
                 return
 
+
 DB = Messages()

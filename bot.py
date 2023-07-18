@@ -61,7 +61,7 @@ async def _failCallback(update: Update, context: CallbackContext):
     return
 
 
-def RunBot(bot_application):
+def RunBot(bot_application: Application):
     start_handler = CommandHandler('start', _startHandler)
     success_callback = CallbackQueryHandler(
         _successCallback, "^task_complited$")
